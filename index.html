@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Bicrosoft Doors - Updates</title>
+<style>
+body{margin:0;min-height:100vh;background:#0f1724;color:#e6eef6;font-family:Segoe UI, sans-serif;display:flex;flex-direction:column;}
+.desktop{flex:1;display:flex;align-items:center;justify-content:flex-start;position:relative;background:linear-gradient(135deg,#1c1f26,#0f1724);padding:20px;}
+
+/* Popup principal */
+.popup {
+  background:#fff;color:#000;width:400px;border:1px solid #555;box-shadow:0 8px 24px rgba(0,0,0,0.6);
+  border-radius:6px;overflow:hidden;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  cursor:default;opacity:0;visibility:hidden;pointer-events:none;transition:opacity 0.4s ease;
+}
+.popup.show{opacity:1;visibility:visible;pointer-events:auto;}
+
+.popup-header{background:#0078d7;color:#fff;padding:8px 12px;font-weight:600;font-size:14px;display:flex;align-items:center;justify-content:space-between;}
+.popup-header span{cursor:pointer;font-weight:700;}
+.popup-body{padding:16px;font-size:14px;line-height:1.5;}
+.popup-footer{display:flex;justify-content:flex-end;padding:12px;gap:8px;background:#f3f3f3;}
+.btn{background:#0078d7;color:#fff;border:none;padding:8px 16px;border-radius:3px;cursor:default;font-weight:600;font-size:13px;transition:background 0.2s;}
+.btn:hover{background:#0063b1;}
+
+/* Barre des tâches */
+.taskbar{height:36px;background:#202020;display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-size:13px;color:#ddd;position:relative;}
+.start-container{position:relative;}
+#startBtn{background:#0078d7;color:#fff;padding:4px 8px;border-radius:2px;display:flex;align-items:center;gap:4px;cursor:default;}
+
+.start-menu {position:absolute;bottom:36px;left:0;background:#2d2d2d;width:220px;border:1px solid #444;
+display:none;flex-direction:column;box-shadow:0 8px 16px rgba(0,0,0,0.5);border-radius:4px;z-index:100;cursor:default;}
+.menu-item{padding:8px 12px;color:#fff;cursor:default;border-bottom:1px solid #444;display:flex;align-items:center;gap:8px;position:relative;}
+.menu-item:hover{background:#0078d7;}
+.submenu{display:none;position:absolute;top:0;left:100%;background:#2d2d2d;width:180px;border:1px solid #444;flex-direction:column;box-shadow:0 8px 16px rgba(0,0,0,0.5);border-radius:4px;z-index:101;}
+.menu-item:hover > .submenu{display:flex;}
+.submenu .menu-item{border-bottom:1px solid #444;}
+
+.progress{height:16px;background:#e5e7eb;border-radius:8px;overflow:hidden;margin-top:10px;}
+.progress > div{height:100%;background:linear-gradient(90deg,#0078d7,#00b7ff);width:0%;transition:width 0.3s ease;}
+.count{font-weight:600;margin-top:8px;}
+
+/* Popups d'alerte */
+.alert-popup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);background:#fff;color:#000;width:350px;border:1px solid #555;box-shadow:0 8px 24px rgba(0,0,0,0.6);border-radius:6px;z-index:9999;animation:fadeInScale 0.3s forwards;}
+.alert-header{background:#d32f2f;color:#fff;padding:8px 12px;font-weight:600;font-size:14px;display:flex;align-items:center;justify-content:space-between;}
+.alert-body{padding:16px;font-size:14px;line-height:1.5;}
+.alert-footer{display:flex;justify-content:flex-end;padding:12px;gap:8px;background:#f3f3f3;}
+
+@keyframes fadeIn{from{opacity:0;transform:scale(0.95);}to{opacity:1;transform:scale(1);}}
+@keyframes fadeInScale{from{opacity:0;transform:translate(-50%,-50%) scale(0.8);}to{opacity:1;transform:translate(-50%,-50%) scale(1);}}
+
+.popup, .alert-popup, .start-menu, .menu-item, #startBtn, .submenu { user-select:none; -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; }
+
+/* Horloge et date */
+.taskbar-right{display:flex;align-items:center;gap:8px;cursor:default;}
+.taskbar-icon{font-size:16px;cursor:default;}
+#clock-container{display:flex;flex-direction:column;align-items:center;font-size:13px;cursor:default;}
+#date{font-size:11px;color:#ccc;cursor:default;}
+
+.fake-window {
+  position: absolute;
+  top: 100px;
+  left: 100px;
+  width: 400px;
+  background: #fff;
+  border: 2px solid #0078d7;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+  font-family: 'Segoe UI', sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+.window-header {
+  background: #0078d7;
+  color: #fff;
+  padding: 6px 10px;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: move;
+}
+
+.window-header .close-window {
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.window-body {
+  padding: 12px;
+  overflow: auto;
+}
+
+/* Style général pour chaque réseau */
+#wifiContainer div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: default;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+/* Hover sur toute la ligne */
+#wifiContainer div:hover {
+  background: rgba(0, 183, 255, 0.2); /* bleu clair transparent */
+}
+
+/* === CALENDRIER === */
+#calendar {
+  display: none;
+  position: absolute;
+  bottom: 50px;
+  right: 50px;
+  width: 280px;
+  background: #2d2d2d;
+  color: #fff;
+  border: 1px solid #444;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+  padding: 12px;
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 13px;
+  z-index: 1000;
+  flex-direction: column;
+}
+
+#calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+#calendar-header button {
+  background: none;
+  border: none;
+  color: #00b7ff;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: color 0.2s;
+}
+#calendar-header button:hover { color: #0078d7; }
+
+#calendar-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #ccc;
+}
+
+#calendar-dates {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  gap: 4px;
+}
+
+#calendar-dates div {
+  padding: 6px 0;
+  border-radius: 6px;
+  cursor: default;
+  transition: background 0.2s, color 0.2s;
+}
+
+#calendar-dates div:hover {
+  background: rgba(0, 183, 255, 0.2);
+}
+
+#calendar-dates .weekend {
+  color: #ff9999;
+}
+
+#calendar-dates .today {
+  background: #ffeb3b;
+  color: #000;
+  font-weight: 700;
+}
+
+#calendar-dates .special {
+  background: #ff4c4c;
+  color: #fff;
+  font-weight: 700;
+}
+
+
+</style>
+</head>
+<body>
+<div class="desktop">
+  <div class="popup" id="popup">
+    <div class="popup-header">Mise à jour requise <span id="closeBtn">×</span></div>
+    <div class="popup-body">
+      Ce PC Windows 10 doit faire la dernière mise à jour.<br>
+      Cliquez sur "Mettre à jour" pour commencer.<br><br>
+      <div class="count">Mises à jour effectuées : <span id="total">0</span> / 400,000,000</div>
+      <div class="progress"><div id="progressBar"></div></div>
+    </div>
+    <div class="popup-footer">
+      <button class="btn" id="updateBtn">Mettre à jour</button>
+    </div>
+  </div>
+</div>
+
+<div class="taskbar">
+  <div class="start-container">
+    <div id="startBtn">🪟 Menu Démarrer</div>
+    <div class="start-menu" id="startMenu">
+      <div class="menu-item">Programmes
+        <div class="submenu">
+          <div class="menu-item">Word</div>
+          <div class="menu-item">Excel</div>
+          <div class="menu-item">PowerPoint</div>
+		  <hr>
+		  <div class="menu-item">Démineur</div>
+        </div>
+      </div>
+      <div class="menu-item">Paramètres</div>
+      <div class="menu-item">Documents
+	  <div class="submenu">
+          <div class="menu-item" data-doc="cv">Mon CV.doc</div>
+          <div class="menu-item" data-doc="chimp">chimp.jpg</div>
+		  <div class="menu-item" data-doc="alice">Alice.mp4</div>
+        </div>
+	  </div>
+      <div class="menu-item">Aide</div>
+	  <hr>
+	  <div class="menu-item">Quitter</div>
+    </div>
+  </div>
+  <div class="taskbar-right">
+    <span class="taskbar-icon">📶</span>
+    <span class="taskbar-icon">🔊</span>
+    <div id="clock-container">
+      <div id="clock"></div>
+      <div id="date"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const target = 400000000;
+let total = 0;
+
+const totalEl = document.getElementById('total');
+const updateBtn = document.getElementById('updateBtn');
+const clockEl = document.getElementById('clock');
+const dateEl = document.getElementById('date');
+const progressBar = document.getElementById('progressBar');
+const closeBtn = document.getElementById('closeBtn');
+const startBtn = document.getElementById('startBtn');
+const startMenu = document.getElementById('startMenu');
+
+// Charger depuis localStorage
+function load(){ 
+  const saved = localStorage.getItem('updates_total'); 
+  if(saved){ total = parseInt(saved,10)||0; render(); } 
+}
+function save(){ localStorage.setItem('updates_total', total); }
+
+// Fermer menu si clic dehors
+document.addEventListener('click', (e)=>{
+  if(!startMenu.contains(e.target) && !startBtn.contains(e.target)) startMenu.style.display='none';
+});
+
+// Mise à jour
+updateBtn.addEventListener('click', () => {
+  total++;
+  save();
+  render();
+
+  // Déterminer le message selon le nombre de PC restant
+  const remainingPC = target - total;
+  const message = remainingPC > 0 
+    ? `💡 Il t'en reste encore quelques-uns à mettre à jour ! (${remainingPC.toLocaleString('fr-FR')} PC restants)` 
+    : `🎉 Bravo ! Tu as terminé à temps !`;
+
+  // Afficher notification
+  const notifDiv = document.createElement('div');
+  notifDiv.className = 'alert-popup';
+  notifDiv.style.zIndex = 3000;
+  notifDiv.innerHTML = `
+    <div class="alert-header">✅ Mise à jour effectuée</div>
+    <div class="alert-body">
+      Ce PC a été mis à jour avec succès !<br>
+      ${message}
+    </div>
+    <div class="alert-footer"><button class="btn" id="notifOkBtn">OK</button></div>
+  `;
+  document.body.appendChild(notifDiv);
+
+  notifDiv.querySelector('#notifOkBtn').addEventListener('click', () => {
+    notifDiv.remove();
+  });
+
+  // Fermer les autres overlays pour que la notification soit visible
+  volumeContainer.style.display = 'none';
+  wifiContainer.style.display = 'none';
+  calendar.style.display = 'none';
+});
+
+// Fermer popup principal
+closeBtn.addEventListener('click', ()=>{ showAlert('❌ Impossible de fermer cette fenêtre : vous devez terminer la mise à jour !'); });
+
+// Menu Démarrer toggle
+startBtn.addEventListener('click', ()=>{ startMenu.style.display = startMenu.style.display==='flex'?'none':'flex'; });
+
+// Popup d’alerte générique
+function showAlert(message){
+  let existing=document.querySelector('.alert-popup'); if(existing) existing.remove();
+  const alertDiv=document.createElement('div');
+  alertDiv.className='alert-popup';
+  alertDiv.innerHTML=`
+    <div class="alert-header">Alerte</div>
+    <div class="alert-body" style="white-space:pre-line;">${message}</div>
+    <div class="alert-footer"><button class="btn" id="alertOkBtn">OK</button></div>`;
+  document.body.appendChild(alertDiv);
+  alertDiv.querySelector('#alertOkBtn').addEventListener('click', ()=>alertDiv.remove());
+}
+
+// Menu items
+const menuItemsAll=startMenu.querySelectorAll('.start-menu>.menu-item');
+menuItemsAll.forEach(item=>{
+  const name=item.textContent.trim();
+  if(!item.querySelector('.submenu') && name!=='Aide' && !item.hasAttribute('data-doc')){
+    item.addEventListener('click', e=>{
+      e.stopPropagation();
+      showAlert(`❌ Vous ne pouvez pas ouvrir "${name}" avant de terminer la mise à jour !`);
+      startMenu.style.display='none';
+    });
+  }
+});
+
+// Sous-menu Programmes
+const submenuItems=startMenu.querySelectorAll('.submenu .menu-item:not([data-doc])');
+submenuItems.forEach(sub=>{
+  const name=sub.textContent.trim();
+  sub.addEventListener('click', e=>{
+    e.stopPropagation();
+    showAlert(`❌ Impossible de lancer "${name}" : mise à jour en cours !`);
+    startMenu.style.display='none';
+  });
+});
+
+// Menu Aide
+const helpItem = Array.from(menuItemsAll).find(i=>i.textContent.trim()==='Aide');
+if(helpItem){
+  helpItem.addEventListener('click', e=>{
+    e.stopPropagation();
+    showAlert(`♻️ La fin des mises à jour de Windows 10 est un impact regrettable pour l'environnement.\n💡 Vous pouvez migrer gratuitement vers Linux !`);
+    startMenu.style.display='none';
+  });
+}
+
+// Menu Quitter
+const quitItem = Array.from(menuItemsAll).find(i=>i.textContent.trim()==='Quitter');
+if(quitItem){
+  quitItem.addEventListener('click', e=>{
+    e.stopPropagation();
+    showAlert(`BAH tu abandonne ? Du coup tu ressemble à Microsoft !\n <h3>LACHEUR !</h3>`);
+    startMenu.style.display='none';
+  });
+}
+
+// Fenêtres "documents"
+function openDocument(doc) {
+  let win = document.createElement('div');
+  win.className = 'fake-window';
+  win.style.zIndex = 1000 + document.querySelectorAll('.fake-window').length;
+
+  if(doc === 'cv') { win.style.width = '600px'; win.style.height = '500px'; } 
+  else { win.style.width = '400px'; win.style.height = '600px'; }
+
+  let title = doc === 'cv' ? 'Mon CV.doc' : (doc==='chimp'?'chimp.jpg':'Alice.mp4');
+  let content = '';
+  if (doc === 'cv') {
+    content = `<div style="font-family: 'Segoe UI', sans-serif; color:#333; line-height:1.4; display:flex; gap:12px;">
+      <img src="images/grug.jpeg" alt="Grug le Fort" style="width:120px; height:150px; object-fit:cover; border:2px solid #555; border-radius:4px;">
+      <div>
+        <h2 style="margin-bottom:4px;">Grug le Fort</h2>
+        <p style="margin:0; color:#555;">🏹 Chasseur-Cueilleur | Grottes de Lascaux | grug@prehisto.com</p>
+        <hr style="margin:8px 0; border-color:#ccc;">
+        <h3 style="margin-bottom:4px;">Profil</h3>
+        <p>Chasseur-cueilleur expérimenté, spécialisé dans la traque de mammouths et la cueillette de baies sauvages. Expert en feu et en construction d’abris avec pierres et bois.</p>
+        <h3 style="margin-bottom:4px;">Compétences</h3>
+        <ul style="margin:0 0 8px 16px; padding:0;">
+          <li>Chasse au mammouth et au cerf</li>
+          <li>Fabrication d’outils en pierre et en os</li>
+          <li>Cueillette et identification de plantes comestibles</li>
+          <li>Maîtrise du feu pour cuisiner et se chauffer</li>
+          <li>Peinture rupestre et communication picturale</li>
+        </ul>
+        <h3 style="margin-bottom:4px;">Expériences</h3>
+        <ul style="margin:0 0 8px 16px; padding:0;">
+          <li>Chef de chasse, Clan des Roches Brunes — 5 ans</li>
+          <li>Apprenti cueilleur, Rivière des Bois — 3 ans</li>
+          <li>Artiste rupestre, Grottes de Lascaux — 2 ans</li>
+        </ul>
+        <h3 style="margin-bottom:4px;">Loisirs</h3>
+        <p>Lancer de sagaie, course avec les loups, peinture sur les parois de grottes.</p>
+      </div>
+    </div>`;
+  } else if(doc==='alice') content = '<video src="images/test.mp4" style="max-width:100%;" controls autoplay loop></video>';
+  else if(doc==='chimp') content = '<img src="images/chimp.jpeg" style="max-width:100%;"/>';
+
+  win.innerHTML = `
+    <div class="window-header">Visionneuse - ${title} <span class="close-window">×</span></div>
+    <div class="window-body">${content}</div>
+    <div class="resize-handle" style="width:12px;height:12px;position:absolute;right:0;bottom:0;cursor:se-resize;background:transparent;"></div>
+  `;
+  document.body.appendChild(win);
+
+  win.querySelector('.close-window').addEventListener('click', () => win.remove());
+  makeDraggable(win);
+  makeResizable(win);
+}
+
+function makeDraggable(win) {
+  const header = win.querySelector('.window-header');
+  let offsetX=0, offsetY=0, isDown=false;
+
+  header.addEventListener('mousedown', e=>{
+    isDown=true;
+    offsetX=e.clientX-win.offsetLeft;
+    offsetY=e.clientY-win.offsetTop;
+    win.style.zIndex = 1000 + document.querySelectorAll('.fake-window').length;
+  });
+
+  document.addEventListener('mousemove', e=>{
+    if(!isDown) return;
+    win.style.left=e.clientX-offsetX+'px';
+    win.style.top=e.clientY-offsetY+'px';
+  });
+
+  document.addEventListener('mouseup', ()=>{ isDown=false; });
+}
+
+function makeResizable(win) {
+  const handle = win.querySelector('.resize-handle');
+  const minWidth = 300;
+  const minHeight = 200;
+
+  handle.addEventListener('mousedown', e=>{
+    e.preventDefault(); e.stopPropagation();
+    let startX=e.clientX, startY=e.clientY;
+    let startWidth=win.offsetWidth, startHeight=win.offsetHeight;
+
+    function onMouseMove(e){
+      let newWidth=startWidth+(e.clientX-startX);
+      let newHeight=startHeight+(e.clientY-startY);
+      if(newWidth<minWidth) newWidth=minWidth;
+      if(newHeight<minHeight) newHeight=minHeight;
+      win.style.width=newWidth+'px';
+      win.style.height=newHeight+'px';
+    }
+
+    function onMouseUp(){ document.removeEventListener('mousemove',onMouseMove); document.removeEventListener('mouseup',onMouseUp); }
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  });
+}
+
+// Écouter les clics sur les documents
+const docItems = startMenu.querySelectorAll('[data-doc]');
+docItems.forEach(item=>{
+  item.addEventListener('click', e=>{
+    e.stopPropagation();
+    const doc = item.dataset.doc;
+    openDocument(doc);
+    startMenu.style.display='none';
+  });
+});
+
+// Horloge et date
+function updateClock(){ const now=new Date(); clockEl.textContent=now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); }
+function updateDate(){ const now=new Date(); const day=String(now.getDate()).padStart(2,'0'); const month=String(now.getMonth()+1).padStart(2,'0'); const year=now.getFullYear(); dateEl.textContent=`${day}/${month}/${year}`; }
+updateClock(); updateDate(); setInterval(updateClock,1000);
+
+// Progress bar
+function render(){ totalEl.textContent=total.toLocaleString('fr-FR'); progressBar.style.width=(total/target*100)+'%'; }
+
+// Afficher le popup principal sans saut
+window.addEventListener('load', ()=>{ document.getElementById('popup').classList.add('show'); });
+
+// ======= SLIDER VOLUME =======
+const soundIcon = document.querySelector('.taskbar-icon:nth-child(2)');
+const volumeContainer = document.createElement('div');
+volumeContainer.id = 'volumeSliderContainer';
+volumeContainer.style.cssText = `
+position:absolute; bottom:40px; right:12px; background:#2d2d2d; padding:8px; border-radius:6px; display:none;
+box-shadow:0 4px 16px rgba(0,0,0,0.5); width:40px; height:150px; flex-direction:column; align-items:center;
+`;
+volumeContainer.innerHTML = `
+  <input type="range" min="0" max="100" value="50" id="volumeSlider" style="
+    writing-mode: sideways-lr;
+    -webkit-appearance: slider-vertical;
+    height: 100%;
+    width: 8px;
+  ">
+  <div id="volumeValue" style="color:#fff;font-size:12px;text-align:center;margin-top:4px;">42%</div>
+`;
+document.body.appendChild(volumeContainer);
+const slider = volumeContainer.querySelector('#volumeSlider');
+const valueDisplay = volumeContainer.querySelector('#volumeValue');
+slider.addEventListener('input', ()=>{ valueDisplay.textContent = slider.value+'%'; });
+soundIcon.addEventListener('click', e=>{
+  e.stopPropagation();
+  if(volumeContainer.style.display==='flex') volumeContainer.style.display='none';
+  else{
+    volumeContainer.style.display='flex';
+    const rect = soundIcon.getBoundingClientRect();
+    volumeContainer.style.bottom=(window.innerHeight-rect.top+5)+'px';
+    volumeContainer.style.right=(window.innerWidth-rect.right)+'px';
+  }
+});
+document.addEventListener('click', e=>{ if(!volumeContainer.contains(e.target) && e.target!==soundIcon) volumeContainer.style.display='none'; });
+
+// ======= WIFI =======
+const wifiIcon = document.querySelector('.taskbar-icon:nth-child(1)');
+const wifiContainer = document.createElement('div');
+wifiContainer.id='wifiContainer';
+wifiContainer.style.cssText = `
+position:absolute; bottom:40px; background:#2d2d2d; color:#fff; padding:8px; border-radius:6px; 
+box-shadow:0 4px 16px rgba(0,0,0,0.5); display:none; z-index:1000; min-width:150px; font-size:13px; flex-direction:column; gap:4px;
+`;
+const wifiNetworks = [
+  {name:'Box RE48201', strength:4},
+  {name:'BureauWiFi', strength:1},
+  {name:'CafeNet', strength:2},
+  {name:'FreeWifi', strength:2},
+  {name:'RéseauPublic', strength:3}
+];
+wifiNetworks.forEach(n=>{
+  const div=document.createElement('div');
+  div.style.display='flex'; div.style.justifyContent='space-between'; div.style.alignItems='center';
+  div.style.cursor='default'; div.style.padding='4px 6px'; div.style.borderRadius='4px';
+  const imgSrc=`images/wifi${n.strength}.png`;
+  div.innerHTML=`<span>${n.name}</span><img src="${imgSrc}" alt="${n.strength} barres" style="height:16px;">`;
+  div.addEventListener('mouseenter', ()=>{ div.style.background='rgba(0,183,255,0.2)'; });
+  div.addEventListener('mouseleave', ()=>{ div.style.background=''; });
+  div.addEventListener('click', ()=>{ showAlert(`❌ Impossible de changer de wifi pour "${n.name}". Une mise à jour est en cours !`); wifiContainer.style.display='none'; });
+  wifiContainer.appendChild(div);
+});
+document.body.appendChild(wifiContainer);
+wifiIcon.addEventListener('click', e=>{
+  e.stopPropagation();
+  if(wifiContainer.style.display==='flex') wifiContainer.style.display='none';
+  else{
+    wifiContainer.style.display='flex';
+    const rect = wifiIcon.getBoundingClientRect();
+    wifiContainer.style.bottom=(window.innerHeight-rect.top+5)+'px';
+    wifiContainer.style.right=(window.innerWidth-rect.right)+'px';
+  }
+});
+document.addEventListener('click', e=>{ if(!wifiContainer.contains(e.target) && e.target!==wifiIcon) wifiContainer.style.display='none'; });
+
+// ======= CALENDRIER =======
+// Variables pour la date actuelle
+const now = new Date();
+let currentDay = now.getDate();
+let currentMonth = now.getMonth();
+let currentYear = now.getFullYear();
+const today = { day: currentDay, month: currentMonth, year: currentYear };
+
+// Création du calendrier
+const calendar = document.createElement('div');
+calendar.id = 'calendar';
+calendar.style.position = 'absolute';
+calendar.style.bottom = '40px';
+calendar.style.right = '12px';
+calendar.style.width = '260px';
+calendar.style.background = '#2d2d2d';
+calendar.style.color = '#fff';
+calendar.style.border = '1px solid #444';
+calendar.style.borderRadius = '6px';
+calendar.style.boxShadow = '0 4px 16px rgba(0,0,0,0.5)';
+calendar.style.padding = '8px';
+calendar.style.display = 'none';
+calendar.style.zIndex = '1000';
+calendar.style.fontFamily = 'Segoe UI, sans-serif';
+calendar.style.fontSize = '13px';
+document.body.appendChild(calendar);
+
+// Fonction pour afficher le calendrier
+function renderCalendar(month = currentMonth, year = currentYear) {
+  const firstDay = new Date(year, month, 1).getDay();
+  const lastDate = new Date(year, month + 1, 0).getDate();
+  const monthName = new Date(year, month).toLocaleString('fr-FR', { month: 'long' });
+
+  let html = `
+    <div id="calendar-header">
+      <button id="prevMonth">◀</button>
+      <div>${monthName} ${year}</div>
+      <button id="nextMonth">▶</button>
+    </div>
+    <div id="calendar-days">${['L','M','M','J','V','S','D'].map(d=>`<div>${d}</div>`).join('')}</div>
+    <div id="calendar-dates"></div>
+  `;
+  calendar.innerHTML = html;
+
+  const datesContainer = calendar.querySelector('#calendar-dates');
+  const dayOffset = firstDay === 0 ? 6 : firstDay - 1;
+
+  for (let i = 0; i < dayOffset; i++) datesContainer.innerHTML += `<div></div>`;
+  
+  for (let d = 1; d <= lastDate; d++) {
+    const weekday = (dayOffset + d - 1) % 7;
+    let classes = '';
+    if (weekday >= 5) classes += 'weekend ';
+    if (d === today.day && month === today.month && year === today.year) classes += 'today ';
+    if (d === 14 && month === 9 && year === 2025) classes += 'special ';
+    datesContainer.innerHTML += `<div class="${classes.trim()}">${d}</div>`;
+  }
+
+// Ajouter après avoir rempli datesContainer
+datesContainer.querySelectorAll('div').forEach(dayDiv => {
+  const dayNumber = parseInt(dayDiv.textContent);
+  if (!isNaN(dayNumber)) {
+    // Jour actuel
+    if (dayNumber === today.day && month === today.month && year === today.year) {
+  dayDiv.style.cursor = 'pointer';
+  dayDiv.addEventListener('click', e => {
+    e.stopPropagation();
+    const remainingPC = Math.max(0, target - total);
+
+    // Calculer le nombre de jours avant le 14/10/2025
+    const endDate = new Date(2025, 9, 14); // mois 0-indexé → 9 = octobre
+    const todayDate = new Date();
+    const diffTime = endDate - todayDate; // différence en ms
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    showAlert(
+      `💪 Il te reste <b>${remainingPC.toLocaleString('fr-FR')}</b> PC à mettre à jour !\n` +
+      `⏳ Il te reste ${diffDays} jour${diffDays > 1 ? 's' : ''} avant la fin du support !\n` +
+      `Allez, courage, tu peux y arriver ! 🚀`
+    );
+  });
+}
+
+    // 14 octobre 2025 (fin support)
+    if (dayNumber === 14 && month === 9 && year === 2025) {
+      dayDiv.style.cursor = 'pointer';
+      dayDiv.addEventListener('click', e => {
+        e.stopPropagation();
+        const remainingPC = Math.max(0, target - total);
+        showAlert(
+        `<h2>⚠️ Dernière ligne droite !</h2>\n` +
+        `le 14 Octobre 2025, Windows 10 ne sera recevra plus de mises a jour de sécurité. Il te reste encore à faire la mise a jour sur <b>${remainingPC.toLocaleString('fr-FR')} </b>PC courrage, ne fait pas comme microsoft, ne les abandonne pas !\n`
+       );
+      });
+    }
+  }
+});
+
+
+  calendar.querySelector('#prevMonth').addEventListener('click', e => {
+    e.stopPropagation();
+    if (month === 0) { currentMonth = 11; currentYear--; } else currentMonth--;
+    renderCalendar(currentMonth, currentYear);
+  });
+  calendar.querySelector('#nextMonth').addEventListener('click', e => {
+    e.stopPropagation();
+    if (month === 11) { currentMonth = 0; currentYear++; } else currentMonth++;
+    renderCalendar(currentMonth, currentYear);
+  });
+}
+
+// Initialisation
+renderCalendar();
+
+// Afficher/masquer le calendrier au clic sur la date/heure
+const clockContainer = document.getElementById('clock-container');
+
+clockContainer.addEventListener('click', e => {
+  e.stopPropagation();
+  calendar.style.display = calendar.style.display === 'flex' ? 'none' : 'flex';
+});
+
+// Masquer le calendrier si clic en dehors
+document.addEventListener('click', e => {
+  if (!calendar.contains(e.target) && e.target !== clockContainer) {
+    calendar.style.display = 'none';
+  }
+});
+
+// Charger et afficher le total
+load();
+render();
+
+
+</script>
+</body>
+</html>
